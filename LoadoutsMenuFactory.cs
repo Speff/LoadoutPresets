@@ -131,6 +131,7 @@ internal static class LoadoutsMenuFactory
             {
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(new Action(LoadoutsMenu.CloseMenu));
+                NavigationHelper.SetAutomaticNavigation(button);
                 Main.Logger.LogDebug("MenuFactory: Configured B_Back button with close handler.");
             }
         }
@@ -282,6 +283,7 @@ internal static class LoadoutsMenuFactory
         inputField.placeholder = CreatePlaceholder(inputFieldObj.transform, titleText);
         inputField.text = "";
         inputField.characterLimit = 50;
+        inputField.navigation = new Navigation { mode = Navigation.Mode.None };
 
         LoadoutsMenu.SetLoadoutNameInput(inputField);
 

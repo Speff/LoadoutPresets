@@ -186,6 +186,8 @@ internal static class ButtonFactory
             Main.Logger.LogDebug($"ButtonFactory: Copied colors from template (Hover: {zombieButtonComponent.hoverColor}).");
         }
 
+        NavigationHelper.SetAutomaticNavigation(targetButtonComponent);
+
         UpdateTextComponent(targetButtonComponent.transform, newTextValue);
         SetupEventTriggers(targetButtonComponent);
     }

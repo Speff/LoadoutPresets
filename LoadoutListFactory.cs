@@ -258,6 +258,11 @@ internal static class LoadoutListFactory
 
         itemObj.SetActive(true);
 
+        // Register buttons with the active window for controller navigation
+        NavigationHelper.RegisterButton(characterButton);
+        NavigationHelper.RegisterButton(loadButton);
+        NavigationHelper.RegisterButton(deleteButton);
+
         return itemObj;
     }
 
