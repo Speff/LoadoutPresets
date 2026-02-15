@@ -10,7 +10,7 @@
 	  <RootNamespace>LoadoutPresets</RootNamespace>
     
     <!-- Set your R2ModMan profile path here -->
-    <R2ModManProfile>C:\Users\grube\AppData\Roaming\r2modmanPlus-local\Megabonk\profiles\Mods\BepInEx\plugins\ZeusesNeckMeat-LoadoutPresets</R2ModManProfile>
+    <R2ModManProfile>$(APPDATA)\r2modmanPlus-local\Megabonk\profiles\Default\BepInEx\plugins\ZeusesNeckMeat-LoadoutPresets</R2ModManProfile>
   </PropertyGroup>
 
   <ItemGroup>
