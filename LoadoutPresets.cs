@@ -91,7 +91,7 @@ public class LoadoutPresets : BasePlugin
 
         SaveCurrentLoadout(loadoutName);
 
-        inputField.text = "";
+        LoadoutsMenu.SetDefaultLoadoutName();
 
         _logger.LogInfo($"Loadout '{loadoutName}' saved successfully.");
     }

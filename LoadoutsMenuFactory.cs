@@ -340,12 +340,16 @@ internal static class LoadoutsMenuFactory
             Main.Logger.LogDebug("MenuFactory: Input field editing ended — restoring navigation.");
             inputField.DeactivateInputField();
 
+            // If user exited without typing, restore the default loadout name
+            if (string.IsNullOrEmpty(text))
+                LoadoutsMenu.SetDefaultLoadoutName();
+
             // Update wrapper text to show current value or placeholder
             var wrapperText = inputWrapper.transform
                 .Find("B_InputFieldWrapper_Text_Protected")
                 ?.GetComponent<TextMeshProUGUI>();
             if (wrapperText)
-                wrapperText.text = string.IsNullOrEmpty(text) ? "New loadout name..." : text;
+                wrapperText.text = string.IsNullOrEmpty(inputField.text) ? "New loadout name..." : inputField.text;
 
             // Restore controller selection to the wrapper if nothing else was selected
             if (EventSystem.current != null &&
@@ -358,10 +362,12 @@ internal static class LoadoutsMenuFactory
             }
         }));
 
-        // When the input field is clicked directly with mouse, clear the SelectionArrow
-        // to prevent the cursor staying highlighted on the last controller-selected button.
+        // When the input field is activated (mouse click or controller A via wrapper),
+        // clear the pre-populated default name so the user can type a fresh name.
+        // Also clear the SelectionArrow to prevent the cursor staying highlighted.
         inputField.onSelect.AddListener(new Action<string>(_ =>
         {
+            inputField.text = "";
             NavigationHelper.ClearSelection();
         }));
 

@@ -99,7 +99,6 @@ internal static class LoadoutsMenu
 
         if (_loadoutNameInput)
         {
-            _loadoutNameInput.text = "";
             _loadoutNameInput.DeactivateInputField();
             var placeholderText = _loadoutNameInput.placeholder?.GetComponent<TextMeshProUGUI>();
             if (placeholderText)
@@ -107,15 +106,10 @@ internal static class LoadoutsMenu
                 placeholderText.text = "New loadout name...";
                 placeholderText.color = new Color(0.5f, 0.5f, 0.5f, 0.5f);
             }
-
-            // Reset the wrapper button text
-            var wrapper = _loadoutsMenuPanel.transform.Find("WindowLayers/Content/SubHeader/B_InputFieldWrapper");
-            var wrapperText = wrapper?.Find("B_InputFieldWrapper_Text_Protected")?.GetComponent<TextMeshProUGUI>();
-            if (wrapperText)
-                wrapperText.text = "New loadout name...";
         }
 
         RefreshLoadoutList();
+        SetDefaultLoadoutName();
 
         if (_mainMenuPanel)
             _mainMenuPanel.SetActive(false);
@@ -260,6 +254,26 @@ internal static class LoadoutsMenu
             SetupNavigation();
 
         Main.Logger.LogDebug($"LoadoutsMenu: Removed loadout list item for '{loadoutName}'.");
+    }
+
+    /// <summary>
+    /// Sets the input field text to a default name "Loadout #" where # is the count of saved loadouts + 1.
+    /// Also updates the wrapper button text to match.
+    /// </summary>
+    public static void SetDefaultLoadoutName()
+    {
+        if (!_loadoutNameInput || !_loadoutsMenuPanel) return;
+
+        var count = Main.LoadoutDatasCache().Count() + 1;
+        var defaultName = $"Loadout {count}";
+
+        _loadoutNameInput.text = defaultName;
+        _loadoutNameInput.DeactivateInputField();
+
+        var wrapper = _loadoutsMenuPanel.transform.Find("WindowLayers/Content/SubHeader/B_InputFieldWrapper");
+        var wrapperText = wrapper?.Find("B_InputFieldWrapper_Text_Protected")?.GetComponent<TextMeshProUGUI>();
+        if (wrapperText)
+            wrapperText.text = defaultName;
     }
 
     public static void UpdateLoadoutListItemCharacter(string loadoutName, ECharacter? linkedCharacter)
