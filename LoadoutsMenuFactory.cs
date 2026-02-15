@@ -1,8 +1,11 @@
 ﻿using System;
 
+using Assets.Scripts.Managers;
+
 using TMPro;
 
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 using ButtonNames = LoadoutPresets.Constants.ButtonNames;
@@ -131,7 +134,6 @@ internal static class LoadoutsMenuFactory
             {
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(new Action(LoadoutsMenu.CloseMenu));
-                NavigationHelper.SetAutomaticNavigation(button);
                 Main.Logger.LogDebug("MenuFactory: Configured B_Back button with close handler.");
             }
         }
@@ -286,6 +288,82 @@ internal static class LoadoutsMenuFactory
         inputField.navigation = new Navigation { mode = Navigation.Mode.None };
 
         LoadoutsMenu.SetLoadoutNameInput(inputField);
+
+        // Create a transparent wrapper button over the input field for controller navigation.
+        // The input field itself has Navigation.Mode.None (controller can't reach it directly).
+        // The wrapper is navigable and registers with allButtons/SelectionArrow.
+        // Press A on the wrapper → activates the input field for typing.
+        // When editing ends → focus returns to the wrapper for continued navigation.
+        var inputWrapper = ButtonFactory.CreateNativeButton(
+            _buttonTemplate,
+            "B_InputFieldWrapper",
+            "New loadout name...",
+            "",
+            subHeaderContainer.transform
+        );
+
+        // Position wrapper identically to the input field
+        var wrapperRect = inputWrapper.GetComponent<RectTransform>();
+        wrapperRect.anchorMin = new Vector2(0.03f, 0.15f);
+        wrapperRect.anchorMax = new Vector2(0.48f, 0.85f);
+        wrapperRect.anchoredPosition = Vector2.zero;
+        wrapperRect.sizeDelta = Vector2.zero;
+
+        // Make the wrapper visually transparent — the input field underneath handles visuals.
+        // Keep the MyButtonNormal colors transparent so hover effects don't show a separate button.
+        var wrapperImage = inputWrapper.GetComponent<Image>();
+        if (wrapperImage) wrapperImage.color = new Color(0, 0, 0, 0);
+        var wrapperMyButton = inputWrapper.GetComponent<MyButtonNormal>();
+        if (wrapperMyButton)
+        {
+            wrapperMyButton.defaultColor = new Color(0, 0, 0, 0);
+            wrapperMyButton.hoverColor = new Color(0, 0, 0, 0);
+        }
+
+        // Let mouse clicks pass through to the input field underneath.
+        // Controller A (Submit) still works because it's dispatched via EventSystem, not raycasts.
+        var canvasGroup = inputWrapper.gameObject.AddComponent<CanvasGroup>();
+        canvasGroup.blocksRaycasts = false;
+
+        // A button on controller → activate input field for typing
+        inputWrapper.onClick.RemoveAllListeners();
+        inputWrapper.onClick.AddListener(new Action(() =>
+        {
+            Main.Logger.LogDebug("MenuFactory: Input wrapper activated — entering typing mode.");
+            inputField.ActivateInputField();
+            inputField.Select();
+        }));
+
+        // When editing ends (Enter, Escape, click outside), restore focus to the wrapper
+        inputField.onEndEdit.AddListener(new Action<string>(text =>
+        {
+            Main.Logger.LogDebug("MenuFactory: Input field editing ended — restoring navigation.");
+            inputField.DeactivateInputField();
+
+            // Update wrapper text to show current value or placeholder
+            var wrapperText = inputWrapper.transform
+                .Find("B_InputFieldWrapper_Text_Protected")
+                ?.GetComponent<TextMeshProUGUI>();
+            if (wrapperText)
+                wrapperText.text = string.IsNullOrEmpty(text) ? "New loadout name..." : text;
+
+            // Restore controller selection to the wrapper if nothing else was selected
+            if (EventSystem.current != null &&
+                (EventSystem.current.currentSelectedGameObject == null ||
+                 EventSystem.current.currentSelectedGameObject == inputFieldObj))
+            {
+                var wrapperMyBtn = inputWrapper.GetComponent<MyButtonNormal>();
+                if (wrapperMyBtn)
+                    ButtonManager.ForceHoverButton(wrapperMyBtn);
+            }
+        }));
+
+        // When the input field is clicked directly with mouse, clear the SelectionArrow
+        // to prevent the cursor staying highlighted on the last controller-selected button.
+        inputField.onSelect.AddListener(new Action<string>(_ =>
+        {
+            NavigationHelper.ClearSelection();
+        }));
 
         var saveButton = ButtonFactory.CreateNativeButton(
             _buttonTemplate,

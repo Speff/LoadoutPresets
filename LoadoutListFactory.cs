@@ -258,11 +258,6 @@ internal static class LoadoutListFactory
 
         itemObj.SetActive(true);
 
-        // Register buttons with the active window for controller navigation
-        NavigationHelper.RegisterButton(characterButton);
-        NavigationHelper.RegisterButton(loadButton);
-        NavigationHelper.RegisterButton(deleteButton);
-
         return itemObj;
     }
 
@@ -290,7 +285,7 @@ internal static class LoadoutListFactory
         Main.Logger.LogDebug($"LoadoutListFactory: Deleting loadout '{loadoutName}'...");
         Main.DeleteLoadout(loadoutName);
 
-        TryRemoveLoadoutListItem(loadoutName);
+        LoadoutsMenu.RemoveLoadoutListItem(loadoutName);
     }
 
     /// <summary>

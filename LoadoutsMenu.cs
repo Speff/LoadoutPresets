@@ -1,12 +1,15 @@
 ﻿using Il2CppInterop.Runtime.InteropTypes.Arrays;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using TMPro;
 
 using UnityEngine;
 using UnityEngine.UI;
+
+using Assets.Scripts.Managers;
 
 using Main = LoadoutPresets.LoadoutPresets;
 using ObjectNames = LoadoutPresets.Constants.ObjectNames;
@@ -97,12 +100,19 @@ internal static class LoadoutsMenu
         if (_loadoutNameInput)
         {
             _loadoutNameInput.text = "";
+            _loadoutNameInput.DeactivateInputField();
             var placeholderText = _loadoutNameInput.placeholder?.GetComponent<TextMeshProUGUI>();
             if (placeholderText)
             {
                 placeholderText.text = "New loadout name...";
                 placeholderText.color = new Color(0.5f, 0.5f, 0.5f, 0.5f);
             }
+
+            // Reset the wrapper button text
+            var wrapper = _loadoutsMenuPanel.transform.Find("WindowLayers/Content/SubHeader/B_InputFieldWrapper");
+            var wrapperText = wrapper?.Find("B_InputFieldWrapper_Text_Protected")?.GetComponent<TextMeshProUGUI>();
+            if (wrapperText)
+                wrapperText.text = "New loadout name...";
         }
 
         RefreshLoadoutList();
@@ -112,9 +122,8 @@ internal static class LoadoutsMenu
 
         _loadoutsMenuPanel.SetActive(true);
 
-        NavigationHelper.FixButtonSizesForCursor(_loadoutsMenuPanel.transform);
-        RegisterAllButtons();
-        SetInitialControllerSelection();
+        SetupNavigation();
+        SetInitialSelection();
 
         Main.Logger.LogDebug("LoadoutsMenu: Menu opened successfully.");
     }
@@ -236,9 +245,17 @@ internal static class LoadoutsMenu
         );
 
         if (item != null)
-            NavigationHelper.FixButtonSizesForCursor(item.transform);
+            SetupNavigation();
 
         Main.Logger.LogDebug($"LoadoutsMenu: Added loadout list item for '{loadoutName}'.");
+    }
+
+    public static void RemoveLoadoutListItem(string loadoutName)
+    {
+        if (LoadoutListFactory.TryRemoveLoadoutListItem(loadoutName))
+            SetupNavigation();
+
+        Main.Logger.LogDebug($"LoadoutsMenu: Removed loadout list item for '{loadoutName}'.");
     }
 
     public static void UpdateLoadoutListItemCharacter(string loadoutName, ECharacter? linkedCharacter)
@@ -248,68 +265,77 @@ internal static class LoadoutsMenu
     }
 
     /// <summary>
-    /// Registers all mod-created buttons (sub-header + loadout rows) with the active window
-    /// so the game's controller navigation system can traverse them.
+    /// Builds an explicit navigation grid for all menu buttons and wires them up.
+    /// Row 0: [B_Back]
+    /// Row 1: [B_InputFieldWrapper, B_SaveLoadout, B_OpenFolder]
+    /// Row 2+: [B_CharacterSelector, B_Load, B_Delete] per loadout
     /// </summary>
-    private static void RegisterAllButtons()
+    private static void SetupNavigation()
     {
-        if (WindowManager.activeWindow == null)
-        {
-            Main.Logger.LogWarning("LoadoutsMenu: No active window for button registration.");
-            return;
-        }
+        var rows = new List<Selectable[]>();
 
-        // Register B_Back button from the header
+        // Row 0: Back button
         var backButton = _loadoutsMenuPanel.transform.Find("Header/Header/B_Back")?.GetComponent<Button>();
         if (backButton)
-            NavigationHelper.RegisterButton(backButton);
+            rows.Add(new Selectable[] { backButton });
 
-        // Register sub-header buttons (Save, Open Folder)
+        // Row 1: Sub-header (input wrapper, save, open folder)
         var subHeader = _loadoutsMenuPanel.transform.Find("WindowLayers/Content/SubHeader");
         if (subHeader)
         {
-            var subHeaderButtons = subHeader.GetComponentsInChildren<Button>(true);
-            foreach (var button in subHeaderButtons)
-                NavigationHelper.RegisterButton(button);
+            var inputWrapper = subHeader.Find("B_InputFieldWrapper")?.GetComponent<Button>();
+            var saveButton = subHeader.Find("B_SaveLoadout")?.GetComponent<Button>();
+            var openFolder = subHeader.Find("B_OpenFolder")?.GetComponent<Button>();
+            rows.Add(new Selectable[] { inputWrapper, saveButton, openFolder });
         }
 
-        // Register all loadout row buttons
+        // Row 2+: Loadout items
         if (_loadoutListContainer)
         {
-            var loadoutButtons = _loadoutListContainer.GetComponentsInChildren<Button>(true);
-            foreach (var button in loadoutButtons)
-                NavigationHelper.RegisterButton(button);
+            for (int i = 0; i < _loadoutListContainer.childCount; i++)
+            {
+                var item = _loadoutListContainer.GetChild(i);
+                if (!item.gameObject.activeSelf) continue;
+
+                var charSelector = item.Find("B_CharacterSelector")?.GetComponent<Button>();
+                var loadBtn = item.Find("B_Load")?.GetComponent<Button>();
+                var deleteBtn = item.Find("B_Delete")?.GetComponent<Button>();
+                rows.Add(new Selectable[] { charSelector, loadBtn, deleteBtn });
+            }
         }
 
-        Main.Logger.LogDebug("LoadoutsMenu: All buttons registered with active window.");
+        NavigationHelper.SetupGridNavigation(rows);
     }
 
     /// <summary>
-    /// Sets the initial controller selection to the first loadout row's Load button,
-    /// falling back to the Save button if no loadouts exist.
+    /// Sets initial controller focus using the game's ButtonManager.ForceHoverButton API.
+    /// Selects the first loadout's Load button, or falls back to Save if no loadouts exist.
     /// </summary>
-    private static void SetInitialControllerSelection()
+    private static void SetInitialSelection()
     {
         // Try to select the first loadout's Load button
         if (_loadoutListContainer && _loadoutListContainer.childCount > 0)
         {
             var firstItem = _loadoutListContainer.GetChild(0);
-            var loadButton = firstItem.Find("B_Load");
+            var loadButton = firstItem.Find("B_Load")?.GetComponent<MyButtonNormal>();
             if (loadButton)
             {
-                NavigationHelper.SetInitialSelection(loadButton.gameObject);
+                ButtonManager.ForceHoverButton(loadButton);
+                Main.Logger.LogDebug("LoadoutsMenu: Set initial selection to first loadout's Load button.");
                 return;
             }
         }
 
         // Fallback: select the Save button
-        var saveButton = _loadoutsMenuPanel.transform.Find("WindowLayers/Content/SubHeader/B_SaveLoadout");
+        var saveButton = _loadoutsMenuPanel.transform.Find("WindowLayers/Content/SubHeader/B_SaveLoadout")?.GetComponent<MyButtonNormal>();
         if (saveButton)
         {
-            NavigationHelper.SetInitialSelection(saveButton.gameObject);
+            ButtonManager.ForceHoverButton(saveButton);
+            Main.Logger.LogDebug("LoadoutsMenu: Set initial selection to Save button (no loadouts).");
             return;
         }
 
         Main.Logger.LogDebug("LoadoutsMenu: No suitable button for initial controller selection.");
     }
+
 }
