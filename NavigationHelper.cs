@@ -71,4 +71,50 @@ internal static class NavigationHelper
             EventSystem.current.SetSelectedGameObject(null);
         }
     }
+
+    /// <summary>
+    /// Converts a stretch-anchored RectTransform to explicit sizing (point anchors + sizeDelta).
+    /// The game's SelectionArrow reads RectTransform size to scale the cursor highlight.
+    /// Stretch-anchored elements have sizeDelta=(0,0), which makes the cursor tiny.
+    /// This must be called after the parent is active and Canvas layout has been computed.
+    /// </summary>
+    public static void ConvertToExplicitSize(RectTransform rect)
+    {
+        if (rect == null) return;
+
+        var size = rect.rect.size;
+        if (size.x <= 0 || size.y <= 0) return;
+
+        var center = new Vector2(
+            (rect.anchorMin.x + rect.anchorMax.x) / 2f,
+            (rect.anchorMin.y + rect.anchorMax.y) / 2f
+        );
+
+        rect.anchorMin = center;
+        rect.anchorMax = center;
+        rect.sizeDelta = size;
+    }
+
+    /// <summary>
+    /// Forces a canvas layout update, then converts all Button RectTransforms
+    /// under the given root to explicit sizing for correct SelectionArrow cursor scaling.
+    /// </summary>
+    public static void FixButtonSizesForCursor(Transform root)
+    {
+        if (root == null) return;
+
+        Canvas.ForceUpdateCanvases();
+
+        var buttons = root.GetComponentsInChildren<Button>(true);
+        foreach (var button in buttons)
+        {
+            var rect = button.GetComponent<RectTransform>();
+            if (rect != null && rect.sizeDelta == Vector2.zero)
+            {
+                ConvertToExplicitSize(rect);
+            }
+        }
+
+        Main.Logger.LogDebug($"NavigationHelper: Converted {buttons.Length} buttons to explicit sizing under '{root.name}'.");
+    }
 }

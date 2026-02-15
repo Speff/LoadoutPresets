@@ -112,6 +112,7 @@ internal static class LoadoutsMenu
 
         _loadoutsMenuPanel.SetActive(true);
 
+        NavigationHelper.FixButtonSizesForCursor(_loadoutsMenuPanel.transform);
         RegisterAllButtons();
         SetInitialControllerSelection();
 
@@ -227,12 +228,15 @@ internal static class LoadoutsMenu
 
     public static void AddLoadoutListItem(string loadoutName)
     {
-        LoadoutListFactory.CreateLoadoutListItem(
+        var item = LoadoutListFactory.CreateLoadoutListItem(
             loadoutName,
             null,
             _loadoutListContainer,
             _loadoutsMenuPanel.transform.Find("Header/Header/T_Title")?.GetComponent<TextMeshProUGUI>()
         );
+
+        if (item != null)
+            NavigationHelper.FixButtonSizesForCursor(item.transform);
 
         Main.Logger.LogDebug($"LoadoutsMenu: Added loadout list item for '{loadoutName}'.");
     }
