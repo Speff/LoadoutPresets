@@ -290,7 +290,6 @@ internal static class LoadoutsMenuFactory
         LoadoutsMenu.SetLoadoutNameInput(inputField);
 
         // Create a transparent wrapper button over the input field for controller navigation.
-        // The input field itself has Navigation.Mode.None (controller can't reach it directly).
         // The wrapper is navigable and registers with allButtons/SelectionArrow.
         // Press A on the wrapper → activates the input field for typing.
         // When editing ends → focus returns to the wrapper for continued navigation.
