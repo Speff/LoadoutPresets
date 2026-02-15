@@ -122,6 +122,7 @@ internal static class LoadoutsMenu
 
         _loadoutsMenuPanel.SetActive(true);
 
+        NavigationHelper.FixButtonSizesForCursor(_loadoutsMenuPanel.transform);
         SetupNavigation();
         SetInitialSelection();
 
@@ -245,7 +246,10 @@ internal static class LoadoutsMenu
         );
 
         if (item != null)
+        {
+            NavigationHelper.FixButtonSizesForCursor(item.transform);
             SetupNavigation();
+        }
 
         Main.Logger.LogDebug($"LoadoutsMenu: Added loadout list item for '{loadoutName}'.");
     }

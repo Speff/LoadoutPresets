@@ -65,6 +65,52 @@ internal static class NavigationHelper
     }
 
     /// <summary>
+    /// Forces a canvas layout update, then converts all Button RectTransforms
+    /// under the given root to explicit sizing for correct SelectionArrow cursor scaling.
+    /// SelectionArrow reads RectTransform.sizeDelta to determine cursor size.
+    /// Stretch-anchored elements have sizeDelta=(0,0), which makes the cursor tiny.
+    /// </summary>
+    public static void FixButtonSizesForCursor(Transform root)
+    {
+        if (root == null) return;
+
+        Canvas.ForceUpdateCanvases();
+
+        var buttons = root.GetComponentsInChildren<Button>(true);
+        foreach (var button in buttons)
+        {
+            var rect = button.GetComponent<RectTransform>();
+            if (rect != null && rect.sizeDelta == Vector2.zero)
+            {
+                ConvertToExplicitSize(rect);
+            }
+        }
+
+        Main.Logger.LogDebug($"NavigationHelper: Converted {buttons.Length} buttons to explicit sizing under '{root.name}'.");
+    }
+
+    /// <summary>
+    /// Converts a stretch-anchored RectTransform to center-point anchors with explicit sizeDelta.
+    /// Must be called after the parent is active and Canvas layout has been computed.
+    /// </summary>
+    private static void ConvertToExplicitSize(RectTransform rect)
+    {
+        if (rect == null) return;
+
+        var size = rect.rect.size;
+        if (size.x <= 0 || size.y <= 0) return;
+
+        var center = new Vector2(
+            (rect.anchorMin.x + rect.anchorMax.x) / 2f,
+            (rect.anchorMin.y + rect.anchorMax.y) / 2f
+        );
+
+        rect.anchorMin = center;
+        rect.anchorMax = center;
+        rect.sizeDelta = size;
+    }
+
+    /// <summary>
     /// Finds a selectable in a row by column index, clamping to the row bounds.
     /// </summary>
     private static Selectable FindInRow(Selectable[] row, int preferredColumn)
